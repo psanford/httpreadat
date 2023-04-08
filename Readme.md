@@ -1,4 +1,4 @@
-# httpreadat: a Go library for making http range requests via an io.ReaderAt
+# httpreadat: Go http range requests via an io.ReaderAt
 
 httpreadat is a library for making http range requests exposed as a normal io.ReaderAt
 interface.
