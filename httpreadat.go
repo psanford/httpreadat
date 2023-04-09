@@ -79,7 +79,7 @@ func (rr *RangeReader) client() *http.Client {
 	}
 }
 
-func (rr *RangeReader) Size() (n int, err error) {
+func (rr *RangeReader) Size() (n int64, err error) {
 	req, err := http.NewRequest("GET", rr.url, nil)
 	if err != nil {
 		return 0, err
@@ -114,7 +114,7 @@ func (rr *RangeReader) Size() (n int, err error) {
 		return 0, invalidContentRangeErr
 	}
 
-	n, err = strconv.Atoi(amts[1])
+	n, err = strconv.ParseInt(amts[1], 10, 64)
 	if err != nil {
 		return 0, invalidContentRangeErr
 	}
