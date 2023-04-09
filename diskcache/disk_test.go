@@ -16,7 +16,8 @@ func TestCache(t *testing.T) {
 	}
 	defer os.Remove(backingFile.Name())
 
-	fileSize := 1 << 17
+	// make sure filesize isn't a pagesize multiple
+	fileSize := 1<<17 + 37
 	_, err = io.Copy(backingFile, io.LimitReader(rand.Reader, int64(fileSize)))
 	if err != nil {
 		t.Fatal(err)
@@ -52,6 +53,7 @@ func TestCache(t *testing.T) {
 		size     int
 		cacheHit bool
 	}{
+		{0, 100, false},
 		// read within a single page
 		{1<<13 + 6, 100, false},
 		// read again within that page, see that we cache hit
@@ -64,6 +66,8 @@ func TestCache(t *testing.T) {
 		{1<<13 + 5, 2<<13 + 5, false},
 		// read again see that we cache hit
 		{1<<13 + 5, 2<<13 + 5, true},
+		// read up to last byte
+		{fileSize - 7, 7, false},
 	}
 
 	for i, check := range checks {

@@ -56,10 +56,15 @@ func (h *DiskCacheHandler) Get(p []byte, off int64, fetcher io.ReaderAt) (int, e
 		}
 	}
 
-	if firstMissingPage > 0 {
+	lastPage := h.fileSize / h.PageSize
+
+	if firstMissingPage >= 0 {
 		h.cacheMiss++
 		pageCount := (lastMissingPage + 1) - firstMissingPage
 		size := pageCount * h.PageSize
+		if lastMissingPage == lastPage {
+			size = size - h.PageSize + (h.fileSize % h.PageSize)
+		}
 		buffer := make([]byte, size)
 		n, readAtErr := fetcher.ReadAt(buffer, int64(firstMissingPage*h.PageSize))
 		buffer = buffer[:n]
