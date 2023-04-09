@@ -13,8 +13,8 @@ type DiskCacheHandler struct {
 	PageSize int
 
 	f        *os.File
-	fileSize int
-	pages    map[int]bool
+	fileSize int64
+	pages    map[int64]bool
 
 	cacheHit  int
 	cacheMiss int
@@ -27,11 +27,11 @@ const defaultPageSize = 1 << 16
 // object that is being cached.
 // The state of the cache is stored in memory so it is not safe
 // to share a cache file between different readers.
-func NewDiskCache(f *os.File, fileSize int) *DiskCacheHandler {
+func NewDiskCache(f *os.File, fileSize int64) *DiskCacheHandler {
 	return &DiskCacheHandler{
 		f:        f,
 		fileSize: fileSize,
-		pages:    make(map[int]bool),
+		pages:    make(map[int64]bool),
 	}
 }
 
@@ -41,10 +41,10 @@ func (h *DiskCacheHandler) Get(p []byte, off int64, fetcher io.ReaderAt) (int, e
 	}
 	startPage, endPage := h.pagesForRange(off, len(p))
 
-	firstMissingPage := -1
-	lastMissingPage := -1
+	firstMissingPage := int64(-1)
+	lastMissingPage := int64(-1)
 
-	for i := startPage; i <= endPage; i++ {
+	for i := int64(startPage); i <= endPage; i++ {
 		if h.pages[i] {
 			continue
 		}
@@ -56,21 +56,21 @@ func (h *DiskCacheHandler) Get(p []byte, off int64, fetcher io.ReaderAt) (int, e
 		}
 	}
 
-	lastPage := h.fileSize / h.PageSize
+	lastPage := h.fileSize / int64(h.PageSize)
 
 	if firstMissingPage >= 0 {
 		h.cacheMiss++
 		pageCount := (lastMissingPage + 1) - firstMissingPage
-		size := pageCount * h.PageSize
+		size := pageCount * int64(h.PageSize)
 		if lastMissingPage == lastPage {
-			size = size - h.PageSize + (h.fileSize % h.PageSize)
+			size = size - int64(h.PageSize) + (h.fileSize % int64(h.PageSize))
 		}
 		buffer := make([]byte, size)
-		n, readAtErr := fetcher.ReadAt(buffer, int64(firstMissingPage*h.PageSize))
+		n, readAtErr := fetcher.ReadAt(buffer, firstMissingPage*int64(h.PageSize))
 		buffer = buffer[:n]
-		h.f.WriteAt(buffer, int64(firstMissingPage*h.PageSize))
+		h.f.WriteAt(buffer, int64(firstMissingPage*int64(h.PageSize)))
 		fullPagesRead := n / h.PageSize
-		for i := 0; i < fullPagesRead; i++ {
+		for i := int64(0); i < int64(fullPagesRead); i++ {
 			h.pages[firstMissingPage+i] = true
 		}
 
@@ -86,9 +86,9 @@ func (h *DiskCacheHandler) Get(p []byte, off int64, fetcher io.ReaderAt) (int, e
 	return h.f.ReadAt(p, off)
 }
 
-func (h *DiskCacheHandler) pagesForRange(offset int64, size int) (startPage, endPage int) {
-	startPage = int(offset) / h.PageSize
-	endPage = (int(offset) + size) / h.PageSize
+func (h *DiskCacheHandler) pagesForRange(offset int64, size int) (startPage, endPage int64) {
+	startPage = offset / int64(h.PageSize)
+	endPage = (offset + int64(size)) / int64(h.PageSize)
 
 	return startPage, endPage
 }

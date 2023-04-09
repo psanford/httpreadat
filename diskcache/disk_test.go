@@ -17,7 +17,7 @@ func TestCache(t *testing.T) {
 	defer os.Remove(backingFile.Name())
 
 	// make sure filesize isn't a pagesize multiple
-	fileSize := 1<<17 + 37
+	fileSize := int64(1<<17 + 37)
 	_, err = io.Copy(backingFile, io.LimitReader(rand.Reader, int64(fileSize)))
 	if err != nil {
 		t.Fatal(err)
@@ -49,7 +49,7 @@ func TestCache(t *testing.T) {
 	}
 
 	checks := []struct {
-		start    int
+		start    int64
 		size     int
 		cacheHit bool
 	}{
